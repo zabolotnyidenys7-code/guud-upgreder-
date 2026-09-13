@@ -76,6 +76,33 @@ const skinImages = {
   'Desert Eagle | Mecha Industries': 'https://community.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk6OGRbKFsJ_yWMWqVwuZ3j-1gSCGn20h042vSyY2tdyjCZwIlXJBxQeNe4EWxxoHkMOq0sQGIid5Fnyr42HtXrnE8p4gbgvE'
 };
 const getSkinImage = name => skinImages[name] || '';
+Object.assign(skinImages, {
+  'AWP | Oni Taiji': skinImages['AWP | Hyper Beast'],
+  'AK-47 | Legion of Anubis': skinImages['AK-47 | Fire Serpent'],
+  'M4A1-S | Blue Phosphor': skinImages['M4A1-S | Printstream'],
+  'Glock-18 | Bullet Queen': skinImages['Glock-18 | Fade'],
+  'USP-S | Neo-Noir': skinImages['USP-S | Cortex'],
+  'Desert Eagle | Code Red': skinImages['Desert Eagle | Printstream'],
+  'M4A4 | In Living Color': skinImages['M4A4 | Howl'],
+  'AK-47 | Head Shot': skinImages['AK-47 | Vulcan'],
+  'AWP | Chrome Cannon': skinImages['AWP | Hyper Beast'],
+  'M4A1-S | Printstream 2': skinImages['M4A1-S | Printstream'],
+  'Glock-18 | Vogue 2': skinImages['Glock-18 | Vogue'],
+  'P250 | Asiimov': skinImages['P250 | See Ya Later'],
+  'MP9 | Food Chain': skinImages['MP9 | Starlight Protector'],
+  'FAMAS | Rapid Eye Movement': skinImages['FAMAS | Commemoration'],
+  'AK-47 | Slate': skinImages['AK-47 | Elite Build'],
+  'AWP | Duality': skinImages['AWP | PAW'],
+  'M4A4 | Poly Mag': skinImages['M4A4 | Magnesium'],
+  'USP-S | Ticket to Hell': skinImages['USP-S | Forest Leaves'],
+  'Glock-18 | Umbral Rabbit': skinImages['Glock-18 | Moonrise'],
+  'MP7 | Abyssal Apparition': skinImages['MP7 | Cirrus'],
+  'P90 | Vent Rush': skinImages['P90 | Freight'],
+  'M4A1-S | Briefing': skinImages['M4A1-S | Nitro'],
+  'Galil AR | Chromatic Aberration': skinImages['Galil AR | Akoben'],
+  'SSG 08 | Turbo Peek': skinImages['SSG 08 | Abyss'],
+  'Desert Eagle | Ocean Drive': skinImages['Desert Eagle | Light Rail']
+});
 const affordableSkins = [
   ['Glock-18 | Bunsen Burner', 'COMMON', 40],
   ['MP9 | Sand Scale', 'COMMON', 45],
@@ -113,6 +140,23 @@ const affordableSkins = [
   ['M4A4 | The Emperor', 'EPIC', 1150],
   ['Desert Eagle | Mecha Industries', 'EPIC', 1200]
 ];
+affordableSkins.push(
+  ['Glock-18 | Vogue 2', 'RARE', 340],
+  ['P250 | Asiimov', 'RARE', 390],
+  ['MP9 | Food Chain', 'RARE', 450],
+  ['FAMAS | Rapid Eye Movement', 'RARE', 520],
+  ['AK-47 | Slate', 'RARE', 600],
+  ['M4A4 | Poly Mag', 'RARE', 680],
+  ['USP-S | Ticket to Hell', 'RARE', 740],
+  ['Glock-18 | Umbral Rabbit', 'RARE', 800],
+  ['MP7 | Abyssal Apparition', 'EPIC', 860],
+  ['P90 | Vent Rush', 'EPIC', 920],
+  ['M4A1-S | Briefing', 'EPIC', 980],
+  ['Galil AR | Chromatic Aberration', 'EPIC', 1050],
+  ['SSG 08 | Turbo Peek', 'EPIC', 1120],
+  ['Desert Eagle | Ocean Drive', 'EPIC', 1180],
+  ['AWP | Duality', 'EPIC', 1250]
+);
 const newShopSkins = [
   ...affordableSkins,
   ['M4A4 | Howl', 'LEGENDARY', 6500],
@@ -124,7 +168,17 @@ const newShopSkins = [
   ['Butterfly Knife | Fade', 'LEGENDARY', 18000],
   ['Karambit | Tiger Tooth', 'LEGENDARY', 25000],
   ['M9 Bayonet | Doppler', 'LEGENDARY', 30000],
-  ['Gut Knife | Gamma Doppler', 'LEGENDARY', 9500]
+  ['Gut Knife | Gamma Doppler', 'LEGENDARY', 9500],
+  ['AWP | Oni Taiji', 'LEGENDARY', 4200],
+  ['AK-47 | Legion of Anubis', 'LEGENDARY', 5200],
+  ['M4A1-S | Blue Phosphor', 'LEGENDARY', 7800],
+  ['Glock-18 | Bullet Queen', 'LEGENDARY', 3600],
+  ['USP-S | Neo-Noir', 'EPIC', 2100],
+  ['Desert Eagle | Code Red', 'EPIC', 2600],
+  ['M4A4 | In Living Color', 'EPIC', 2900],
+  ['AK-47 | Head Shot', 'EPIC', 3200],
+  ['AWP | Chrome Cannon', 'EPIC', 3800],
+  ['M4A1-S | Printstream 2', 'EPIC', 4500]
 ];
 const getUpgradedItem = item => {
   const options = newShopSkins
@@ -134,11 +188,22 @@ const getUpgradedItem = item => {
   return { name: target[0], rarity: target[1], value: target[2], image: getSkinImage(target[0]) };
 };
 const CASE_REWARD_MIN = 10;
-const CASE_REWARD_MAX = 350;
-const chooseReward = rewards => {
-  const affordableRewards = rewards.filter(reward => reward[2] >= CASE_REWARD_MIN && reward[2] <= CASE_REWARD_MAX);
-  const pool = affordableRewards.length ? affordableRewards : affordableSkins.filter(skin => skin[2] <= CASE_REWARD_MAX);
-  const weighted = pool.map(reward => ({ reward, weight: 1 / Math.sqrt(reward[2]) }));
+const caseRewardCaps = {
+  100: 80,
+  250: 150,
+  350: 220,
+  500: 300,
+  750: 500,
+  1000: 700,
+  1250: 850,
+  1500: 1000
+};
+const chooseReward = (rewards, caseCost) => {
+  const maxReward = caseRewardCaps[caseCost] || Math.max(CASE_REWARD_MIN, caseCost);
+  const affordableRewards = rewards.filter(reward => reward[2] >= CASE_REWARD_MIN && reward[2] <= maxReward);
+  const fallbackRewards = affordableSkins.filter(skin => skin[2] >= CASE_REWARD_MIN && skin[2] <= maxReward);
+  const pool = affordableRewards.length ? affordableRewards : fallbackRewards;
+  const weighted = pool.map(reward => ({ reward, weight: Math.pow(maxReward / reward[2], 0.75) }));
   const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
   let cursor = Math.random() * totalWeight;
   for (const entry of weighted) {
@@ -267,7 +332,7 @@ document.querySelectorAll('.open-case').forEach(button => button.addEventListene
     return;
   }
   const rewards = caseRewards[caseName] || caseRewards['Стартовый кейс'];
-  const reward = chooseReward(rewards);
+  const reward = chooseReward(rewards, cost);
   changeBalance(-cost);
   track('casesOpened');
   track('totalSpent', cost);
