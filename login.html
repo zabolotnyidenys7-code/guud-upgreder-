@@ -1,0 +1,41 @@
+update public.profiles
+set is_admin = true
+where id = (
+  select id
+  from auth.users
+  where email = 'ТВОЯ_ПОЧТА'
+);<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BEST UPGRADER — Вход</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main class="auth-page">
+  <section class="auth-card">
+    <a class="brand" href="index.html"><span>BU</span> BEST <b>UPGRADER</b></a>
+    <p class="label">ПЕРЕД ВХОДОМ</p>
+    <h1>Подтверждение</h1>
+    <p class="intro">Сайт использует только виртуальные монеты. Подтверди условия, чтобы продолжить.</p>
+    <form id="ageForm" class="consent-list">
+      <label><input type="checkbox" required> Мне исполнилось 18 лет.</label>
+      <label><input type="checkbox" required> Я понимаю, что могу потерять виртуальные предметы и монеты.</label>
+      <label><input type="checkbox" required> Я сам принимаю решение пользоваться сайтом.</label>
+      <input name="email" type="email" placeholder="Email для аккаунта" autocomplete="email" required>
+      <input name="userPassword" type="password" minlength="6" placeholder="Пароль (минимум 6 символов)" autocomplete="new-password" required>
+      <button class="button" type="submit">Войти как пользователь</button>
+      <p class="form-error" id="userLoginError"></p>
+    </form>
+    <hr>
+    <h2>Вход администратора</h2>
+    <form id="adminLogin" class="auth-form">
+      <input name="login" placeholder="Логин" autocomplete="username" required>
+      <input name="password" type="password" placeholder="Пароль" autocomplete="current-password" required>
+      <button class="button" type="submit">Открыть админ-панель</button>
+      <p class="form-error" id="loginError"></p>
+    </form>
+    <p class="notice">Пользовательские аккаунты и проверка администратора работают через Supabase. Для публикации сначала выполни SQL-схему проекта.</p>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BEST UPGRADER — Админ-панель</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<main class="page admin-page">
+  <div class="admin-head"><div><p class="label">CONTROL CENTER</p><h1>Админ-панель</h1></div><button class="button button-small" id="adminLogout">Выйти</button></div>
+  <p class="intro">Статистика текущего браузера. Для реальной многопользовательской аналитики нужен сервер и база данных.</p>
+  <section class="stats-grid" id="adminStats"></section>
+  <section class="admin-card"><h2>Состояние проекта</h2><p id="adminState"></p><a class="button" href="index.html">Перейти на сайт</a></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
