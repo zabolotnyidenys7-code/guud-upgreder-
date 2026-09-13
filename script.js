@@ -450,9 +450,11 @@ let wheelRotation = 0;
 const updateWheel = () => {
   if (!wheel) return;
   const green = Math.round(multiplierChance[selectedMultiplier] * 360);
-  const blend = 6;
+  const blend = Math.min(16, Math.max(8, green / 4));
   const end = Math.max(1, green - blend);
-  wheel.style.background = `conic-gradient(var(--green) 0deg ${end}deg, #49d58b ${end}deg ${green + blend}deg, var(--gray) ${green + blend}deg ${360 - blend}deg, #777c84 ${360 - blend}deg 360deg)`;
+  const startBlend = 360 - blend;
+  const greenToGray = green + blend;
+  wheel.style.background = `conic-gradient(var(--green) 0deg ${end}deg, #42df8b ${end}deg ${end + blend * 0.35}deg, #55ce8e ${end + blend * 0.35}deg ${green - blend * 0.15}deg, #72b88a ${green - blend * 0.15}deg ${greenToGray}deg, var(--gray) ${greenToGray}deg ${startBlend}deg, #747980 ${startBlend}deg ${360 - blend * 0.35}deg, #54ca88 ${360 - blend * 0.35}deg 360deg)`;
 };
 document.querySelectorAll('#multiplier .choice-button').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('#multiplier .choice-button').forEach(item => item.classList.remove('selected'));
