@@ -133,15 +133,19 @@ const getUpgradedItem = item => {
   const target = options[0] || newShopSkins[newShopSkins.length - 1];
   return { name: target[0], rarity: target[1], value: target[2], image: getSkinImage(target[0]) };
 };
+const CASE_REWARD_MIN = 10;
+const CASE_REWARD_MAX = 350;
 const chooseReward = rewards => {
-  const weighted = rewards.map(reward => ({ reward, weight: 1 / Math.sqrt(reward[2]) }));
+  const affordableRewards = rewards.filter(reward => reward[2] >= CASE_REWARD_MIN && reward[2] <= CASE_REWARD_MAX);
+  const pool = affordableRewards.length ? affordableRewards : affordableSkins.filter(skin => skin[2] <= CASE_REWARD_MAX);
+  const weighted = pool.map(reward => ({ reward, weight: 1 / Math.sqrt(reward[2]) }));
   const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
   let cursor = Math.random() * totalWeight;
   for (const entry of weighted) {
     cursor -= entry.weight;
     if (cursor <= 0) return entry.reward;
   }
-  return rewards[rewards.length - 1];
+  return pool[pool.length - 1];
 };
 const caseRewards = {
   'Стартовый кейс': [
@@ -371,7 +375,7 @@ renderUpgradeSource();
 const spin = document.querySelector('#spin');
 const multiplierPicker = document.querySelector('#multiplier');
 const wheel = document.querySelector('#wheel');
-const multiplierChance = { 1: 0.3, 3: 0.45, 5: 0.65, 7: 0.8 };
+const multiplierChance = { 1: 0.1, 3: 0.2, 5: 0.4, 7: 0.6 };
 let selectedMultiplier = 1;
 let selectedSpeed = 4000;
 let wheelRotation = 0;
