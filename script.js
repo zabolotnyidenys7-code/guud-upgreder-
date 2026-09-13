@@ -456,14 +456,21 @@ if (ageForm) ageForm.addEventListener('submit', async event => {
   event.preventDefault();
   const error = document.querySelector('#userLoginError');
   const form = new FormData(ageForm);
+  const rememberMe = form.get('rememberMe') === 'on';
+  localStorage.setItem('bestUpgraderRememberMe', String(rememberMe));
   localStorage.setItem(ageGateKey, 'accepted');
   if (supabaseClient) {
     error.textContent = 'Подключение к серверу...';
     const email = String(form.get('email') || '');
     const password = String(form.get('userPassword') || '');
-    let result = await supabaseClient.auth.signInWithPassword({ email, password });
+    const authClient = window.supabase.createClient(
+      window.bestUpgraderSupabaseConfig.url,
+      window.bestUpgraderSupabaseConfig.key,
+      { auth: { persistSession: rememberMe } }
+    );
+    let result = await authClient.auth.signInWithPassword({ email, password });
     if (result.error) {
-      const registration = await supabaseClient.auth.signUp({ email, password });
+      const registration = await authClient.auth.signUp({ email, password });
       if (registration.error || !registration.data.session) {
         error.textContent = registration.error?.message || 'Проверьте почту для подтверждения аккаунта.';
         return;
@@ -471,8 +478,8 @@ if (ageForm) ageForm.addEventListener('submit', async event => {
       result = registration;
     }
     if (result.data.user) {
-      await supabaseClient.from('profiles').upsert({ id: result.data.user.id, balance: getBalance() }, { onConflict: 'id' });
-      await supabaseClient.from('game_stats').upsert({ user_id: result.data.user.id }, { onConflict: 'user_id' });
+      await authClient.from('profiles').upsert({ id: result.data.user.id, balance: getBalance() }, { onConflict: 'id' });
+      await authClient.from('game_stats').upsert({ user_id: result.data.user.id }, { onConflict: 'user_id' });
     }
   }
   location.href = 'index.html';
