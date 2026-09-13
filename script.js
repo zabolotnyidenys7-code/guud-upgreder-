@@ -420,6 +420,9 @@ if (shopGrid) {
       updateState();
     });
   });
+  [...shopGrid.children]
+    .sort((a, b) => Number(a.querySelector('.buy-skin')?.dataset.price || 0) - Number(b.querySelector('.buy-skin')?.dataset.price || 0))
+    .forEach(card => shopGrid.appendChild(card));
 }
 
 const source = document.querySelector('#upgradeSource');
@@ -447,8 +450,9 @@ let wheelRotation = 0;
 const updateWheel = () => {
   if (!wheel) return;
   const green = Math.round(multiplierChance[selectedMultiplier] * 360);
-  const blend = 4;
-  wheel.style.background = `conic-gradient(var(--green) 0deg ${Math.max(0, green - blend)}deg, #49d58b ${Math.max(0, green - 1)}deg ${green + 1}deg, var(--gray) ${green + blend}deg 360deg)`;
+  const blend = 6;
+  const end = Math.max(1, green - blend);
+  wheel.style.background = `conic-gradient(var(--green) 0deg ${end}deg, #49d58b ${end}deg ${green + blend}deg, var(--gray) ${green + blend}deg ${360 - blend}deg, #777c84 ${360 - blend}deg 360deg)`;
 };
 document.querySelectorAll('#multiplier .choice-button').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('#multiplier .choice-button').forEach(item => item.classList.remove('selected'));
