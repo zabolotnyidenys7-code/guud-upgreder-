@@ -365,7 +365,13 @@ if (header && !header.querySelector('.header-actions')) {
     nav.appendChild(shopLink);
   }
 }
-document.querySelectorAll('.donate-button').forEach(button => button.addEventListener('click', () => alert('Упс, оплата ещё не доступна.')));
+document.querySelectorAll('.donate-button').forEach(button => button.addEventListener('click', () => {
+  if (currentPage === 'donate.html') {
+    document.querySelector('.payment-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  location.href = 'donate.html';
+}));
 document.querySelectorAll('.payment-package').forEach(button => button.addEventListener('click', () => {
   const status = document.querySelector('#paymentStatus');
   const coins = Number(button.dataset.coins);
