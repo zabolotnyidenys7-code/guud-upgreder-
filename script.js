@@ -272,13 +272,85 @@ if (localStorage.getItem('bestUpgraderBalanceVersion') !== '4') {
 }
 const getBalance = () => Number(localStorage.getItem(balanceKey) || 2000);
 const getItems = () => JSON.parse(localStorage.getItem(itemsKey) || '[]');
-const saveItems = items => localStorage.setItem(itemsKey, JSON.stringify(items));
+let cloudSyncTimer = null;
+const syncCloudState = async () => {
+  if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
+  const sessionResult = await supabaseClient.auth.getSession();
+  const userId = sessionResult.data.session?.user?.id;
+  if (!userId) return;
+  const localStats = getStats();
+  const profile = await supabaseClient.from('profiles').upsert({
+    id: userId,
+    balance: getBalance()
+  }, { onConflict: 'id' });
+  if (profile.error) throw profile.error;
+  const stats = await supabaseClient.from('game_stats').upsert({
+    user_id: userId,
+    cases_opened: localStats.casesOpened,
+    spins: localStats.spins,
+    wins: localStats.wins,
+    losses: localStats.losses,
+    purchases: localStats.purchases,
+    sales: localStats.sales,
+    total_spent: localStats.totalSpent,
+    total_earned: localStats.totalEarned
+  }, { onConflict: 'user_id' });
+  if (stats.error) throw stats.error;
+  const removeItems = await supabaseClient.from('inventory').delete().eq('user_id', userId);
+  if (removeItems.error) throw removeItems.error;
+  const items = getItems().map(item => ({
+    user_id: userId,
+    skin_name: item.name,
+    skin_value: item.value,
+    skin_image: item.image || null
+  }));
+  if (items.length) {
+    const insertedItems = await supabaseClient.from('inventory').insert(items);
+    if (insertedItems.error) throw insertedItems.error;
+  }
+};
+const queueCloudSync = () => {
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(() => syncCloudState().catch(error => console.error('Supabase sync failed:', error)), 250);
+};
+const loadCloudState = async () => {
+  if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
+  const sessionResult = await supabaseClient.auth.getSession();
+  const userId = sessionResult.data.session?.user?.id;
+  if (!userId) return;
+  const profile = await supabaseClient.from('profiles').select('balance').eq('id', userId).maybeSingle();
+  const items = await supabaseClient.from('inventory').select('skin_name,skin_value,skin_image').eq('user_id', userId);
+  if (profile.error || items.error) throw profile.error || items.error;
+  if (profile.data) {
+    localStorage.setItem(balanceKey, String(profile.data.balance));
+    localStorage.setItem('bestUpgraderBalanceVersion', 'cloud');
+    localStorage.setItem(itemsKey, JSON.stringify((items.data || []).map(item => ({
+      name: item.skin_name,
+      value: item.skin_value,
+      image: item.skin_image || '',
+      rarity: 'USER ITEM'
+    }))));
+    updateState();
+    if (typeof renderInventory === 'function') renderInventory();
+    if (typeof renderUpgradeSource === 'function') renderUpgradeSource();
+  } else {
+    await syncCloudState();
+  }
+};
+const saveItems = items => {
+  localStorage.setItem(itemsKey, JSON.stringify(items));
+  queueCloudSync();
+};
 const updateState = () => {
   document.querySelectorAll('#balance').forEach(node => node.textContent = getBalance().toLocaleString('ru-RU'));
   document.querySelectorAll('#itemCount, #profileItems').forEach(node => node.textContent = getItems().length);
 };
-const changeBalance = amount => localStorage.setItem(balanceKey, String(getBalance() + amount));
+const changeBalance = amount => {
+  localStorage.setItem(balanceKey, String(getBalance() + amount));
+  queueCloudSync();
+};
 updateState();
+loadCloudState().catch(error => console.error('Supabase load failed:', error));
 
 const header = document.querySelector('.header');
 if (header && !header.querySelector('.header-actions')) {
@@ -294,6 +366,17 @@ if (header && !header.querySelector('.header-actions')) {
   }
 }
 document.querySelectorAll('.donate-button').forEach(button => button.addEventListener('click', () => alert('Упс, оплата ещё не доступна.')));
+document.querySelectorAll('.payment-package').forEach(button => button.addEventListener('click', () => {
+  const status = document.querySelector('#paymentStatus');
+  const coins = Number(button.dataset.coins);
+  if (!Number.isInteger(coins) || coins <= 0) {
+    if (status) status.textContent = 'Не удалось определить тестовый пакет.';
+    return;
+  }
+  changeBalance(coins);
+  if (status) status.textContent = `Тестовое пополнение выполнено: +${coins.toLocaleString('ru-RU')} ◈. Деньги не списаны.`;
+  updateState();
+}));
 
 const renderInventory = () => {
   const inventory = document.querySelector('#inventory');
@@ -450,11 +533,10 @@ let wheelRotation = 0;
 const updateWheel = () => {
   if (!wheel) return;
   const green = Math.round(multiplierChance[selectedMultiplier] * 360);
-  const blend = Math.min(16, Math.max(8, green / 4));
+  const blend = Math.min(12, Math.max(6, green / 5));
   const end = Math.max(1, green - blend);
-  const startBlend = 360 - blend;
   const greenToGray = green + blend;
-  wheel.style.background = `conic-gradient(var(--green) 0deg ${end}deg, #42df8b ${end}deg ${end + blend * 0.35}deg, #55ce8e ${end + blend * 0.35}deg ${green - blend * 0.15}deg, #72b88a ${green - blend * 0.15}deg ${greenToGray}deg, var(--gray) ${greenToGray}deg ${startBlend}deg, #747980 ${startBlend}deg ${360 - blend * 0.35}deg, #54ca88 ${360 - blend * 0.35}deg 360deg)`;
+  wheel.style.background = `conic-gradient(var(--green) 0deg ${end}deg, var(--gray) ${greenToGray}deg ${360 - blend}deg, var(--green) 360deg)`;
 };
 document.querySelectorAll('#multiplier .choice-button').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('#multiplier .choice-button').forEach(item => item.classList.remove('selected'));
@@ -591,25 +673,31 @@ if (adminStats) {
     const session = supabaseClient ? await supabaseClient.auth.getSession() : { data: { session: null } };
     const userId = session.data.session?.user?.id;
     const profile = userId ? await supabaseClient.from('profiles').select('is_admin').eq('id', userId).maybeSingle() : { data: null };
-    if (localStorage.getItem(adminSessionKey) !== 'active' || !profile.data?.is_admin) {
+    if (!userId || !profile.data?.is_admin) {
       location.replace('login.html');
       return;
     }
-    const stats = getStats();
+    const dashboard = await supabaseClient.rpc('admin_dashboard_stats');
+    if (dashboard.error) {
+      document.querySelector('#adminState').textContent = `Не удалось загрузить статистику: ${dashboard.error.message}`;
+      return;
+    }
+    const stats = dashboard.data;
     const cards = [
-      ['Открыто кейсов', stats.casesOpened],
+      ['Пользователей', stats.users],
+      ['Общий баланс ◈', stats.balance],
+      ['Открыто кейсов', stats.cases_opened],
       ['Вращений рулетки', stats.spins],
       ['Побед', stats.wins],
       ['Проигрышей', stats.losses],
       ['Покупок', stats.purchases],
       ['Продаж', stats.sales],
-      ['Потрачено ◈', stats.totalSpent],
-      ['Заработано ◈', stats.totalEarned],
-      ['Предметов сейчас', getItems().length],
-      ['Баланс в браузере', getBalance()]
+      ['Потрачено ◈', stats.total_spent],
+      ['Заработано ◈', stats.total_earned],
+      ['Предметов сейчас', stats.items]
     ];
     adminStats.innerHTML = cards.map(card => `<article class="stat-card"><span>${card[0]}</span><strong>${Number(card[1]).toLocaleString('ru-RU')}</strong></article>`).join('');
-    document.querySelector('#adminState').textContent = 'Администратор авторизован через Supabase. Локальная статистика будет перенесена в общую базу после выполнения игровых серверных операций.';
+    document.querySelector('#adminState').textContent = 'Администратор авторизован. Данные загружены из Supabase.';
   };
   loadAdminPanel();
 }
