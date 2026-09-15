@@ -180,9 +180,10 @@ const newShopSkins = [
   ['AWP | Chrome Cannon', 'EPIC', 3800],
   ['M4A1-S | Printstream 2', 'EPIC', 4500]
 ];
-const getUpgradedItem = item => {
+const getUpgradedItem = (item, multiplier = 1) => {
+  const targetValue = item.value * multiplier;
   const options = newShopSkins
-    .filter(skin => skin[2] > item.value)
+    .filter(skin => skin[2] >= targetValue)
     .sort((a, b) => a[2] - b[2]);
   const target = options[0] || newShopSkins[newShopSkins.length - 1];
   return { name: target[0], rarity: target[1], value: target[2], image: getSkinImage(target[0]) };
@@ -605,6 +606,7 @@ if (shopGrid) {
     .forEach(card => shopGrid.appendChild(card));
 }
 
+let selectedMultiplier = 1;
 const source = document.querySelector('#upgradeSource');
 const upgradePreview = document.querySelector('#upgradePreview');
 let selectedIndex = null;
@@ -615,7 +617,7 @@ const renderUpgradePreview = item => {
     upgradePreview.innerHTML = '';
     return;
   }
-  const target = getUpgradedItem(item);
+  const target = getUpgradedItem(item, selectedMultiplier);
   const sourceImage = item.image || getSkinImage(item.name);
   const targetImage = target.image || getSkinImage(target.name);
   upgradePreview.hidden = false;
@@ -629,7 +631,7 @@ const renderUpgradePreview = item => {
     <article class="upgrade-preview-card target">
       <span>Возможный апгрейд</span>
       ${targetImage ? `<img class="skin-image" src="${targetImage}" alt="${target.name}">` : ''}
-      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b>
+      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b><small>Цель для ${selectedMultiplier}×</small>
     </article>`;
 };
 const renderUpgradeSource = () => {
@@ -651,7 +653,6 @@ const spin = document.querySelector('#spin');
 const multiplierPicker = document.querySelector('#multiplier');
 const wheel = document.querySelector('#wheel');
 const multiplierChance = { 1: 0.15, 3: 0.25, 5: 0.45, 7: 0.65 };
-let selectedMultiplier = 1;
 let selectedSpeed = 4000;
 let wheelRotation = 0;
 const updateWheel = () => {
@@ -667,6 +668,7 @@ document.querySelectorAll('#multiplier .choice-button').forEach(button => button
   button.classList.add('selected');
   selectedMultiplier = Number(button.dataset.value);
   updateWheel();
+  if (selectedIndex !== null) renderUpgradePreview(getItems()[selectedIndex]);
 }));
 document.querySelectorAll('#spinSpeed .choice-button').forEach(button => button.addEventListener('click', () => {
   document.querySelectorAll('#spinSpeed .choice-button').forEach(item => item.classList.remove('selected'));
@@ -713,7 +715,7 @@ if (spin) spin.addEventListener('click', () => {
     document.querySelector('.roulette-box').classList.add(won ? 'roulette-win' : 'roulette-lose');
     let resultItem = item;
     if (won) {
-      const upgradedItem = getUpgradedItem(item);
+      const upgradedItem = getUpgradedItem(item, multiplier);
       items[selectedIndex] = upgradedItem;
       resultItem = upgradedItem;
       saveItems(items);
