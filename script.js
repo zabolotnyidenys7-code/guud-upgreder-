@@ -181,7 +181,7 @@ const newShopSkins = [
   ['M4A1-S | Printstream 2', 'EPIC', 4500]
 ];
 const getUpgradedItem = (item, multiplier = 1) => {
-  const rewardFactor = { 1: 7, 3: 5, 5: 3, 7: 1 }[multiplier] || 1;
+  const rewardFactor = { 1: 7, 3: 5.5, 5: 3.5, 7: 1.5 }[multiplier] || 1.5;
   const targetValue = item.value * rewardFactor;
   const options = newShopSkins
     .filter(skin => skin[2] > targetValue)
@@ -632,7 +632,7 @@ const renderUpgradePreview = item => {
     <article class="upgrade-preview-card target">
       <span>Получишь при победе</span>
       ${targetImage ? `<img class="skin-image" src="${targetImage}" alt="${target.name}">` : ''}
-      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b><small>Награда для ${selectedMultiplier}× · проигрыш возможен</small>
+      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b><small>Награда для ${selectedMultiplier}× · цель примерно ×${({ 1: 7, 3: 5.5, 5: 3.5, 7: 1.5 }[selectedMultiplier] || 1.5).toString().replace('.', ',')}</small>
     </article>`;
 };
 const renderUpgradeSource = () => {
