@@ -274,7 +274,7 @@ const getBalance = () => Number(localStorage.getItem(balanceKey) || 2000);
 const getItems = () => JSON.parse(localStorage.getItem(itemsKey) || '[]');
 let cloudSyncTimer = null;
 let cloudStateLoaded = false;
-const syncCloudState = async () => {
+const syncCloudState = async (includeInventory = false) => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
   const sessionResult = await supabaseClient.auth.getSession();
   const userId = sessionResult.data.session?.user?.id;
@@ -297,23 +297,25 @@ const syncCloudState = async () => {
     total_earned: localStats.totalEarned
   }, { onConflict: 'user_id' });
   if (stats.error) throw stats.error;
-  const removeItems = await supabaseClient.from('inventory').delete().eq('user_id', userId);
-  if (removeItems.error) throw removeItems.error;
-  const items = getItems().map(item => ({
-    user_id: userId,
-    skin_name: item.name,
-    skin_value: item.value,
-    skin_image: item.image || null
-  }));
-  if (items.length) {
-    const insertedItems = await supabaseClient.from('inventory').insert(items);
-    if (insertedItems.error) throw insertedItems.error;
+  if (includeInventory) {
+    const removeItems = await supabaseClient.from('inventory').delete().eq('user_id', userId);
+    if (removeItems.error) throw removeItems.error;
+    const items = getItems().map(item => ({
+      user_id: userId,
+      skin_name: item.name,
+      skin_value: item.value,
+      skin_image: item.image || null
+    }));
+    if (items.length) {
+      const insertedItems = await supabaseClient.from('inventory').insert(items);
+      if (insertedItems.error) throw insertedItems.error;
+    }
   }
 };
-const queueCloudSync = () => {
+const queueCloudSync = (includeInventory = false) => {
   if (!cloudStateLoaded) return;
   clearTimeout(cloudSyncTimer);
-  cloudSyncTimer = setTimeout(() => syncCloudState().catch(error => console.error('Supabase sync failed:', error)), 250);
+  cloudSyncTimer = setTimeout(() => syncCloudState(includeInventory).catch(error => console.error('Supabase sync failed:', error)), 250);
 };
 const loadCloudState = async () => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
@@ -346,7 +348,7 @@ const loadCloudState = async () => {
 };
 const saveItems = items => {
   localStorage.setItem(itemsKey, JSON.stringify(items));
-  queueCloudSync();
+  queueCloudSync(true);
 };
 const updateState = () => {
   document.querySelectorAll('#balance').forEach(node => node.textContent = getBalance().toLocaleString('ru-RU'));
