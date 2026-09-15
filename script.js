@@ -266,13 +266,14 @@ const caseRewards = {
     ['M9 Bayonet | Doppler', 'LEGENDARY', 30000]
   ]
 };
-if (localStorage.getItem('bestUpgraderBalanceVersion') !== '4') {
+if (!['4', 'cloud'].includes(localStorage.getItem('bestUpgraderBalanceVersion'))) {
   localStorage.setItem(balanceKey, '2000');
   localStorage.setItem('bestUpgraderBalanceVersion', '4');
 }
 const getBalance = () => Number(localStorage.getItem(balanceKey) || 2000);
 const getItems = () => JSON.parse(localStorage.getItem(itemsKey) || '[]');
 let cloudSyncTimer = null;
+let cloudStateLoaded = false;
 const syncCloudState = async () => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
   const sessionResult = await supabaseClient.auth.getSession();
@@ -310,6 +311,7 @@ const syncCloudState = async () => {
   }
 };
 const queueCloudSync = () => {
+  if (!cloudStateLoaded) return;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(() => syncCloudState().catch(error => console.error('Supabase sync failed:', error)), 250);
 };
@@ -317,7 +319,11 @@ const loadCloudState = async () => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
   const sessionResult = await supabaseClient.auth.getSession();
   const userId = sessionResult.data.session?.user?.id;
-  if (!userId) return;
+  if (!userId) {
+    cloudStateLoaded = true;
+    return;
+  }
+  clearTimeout(cloudSyncTimer);
   const profile = await supabaseClient.from('profiles').select('balance').eq('id', userId).maybeSingle();
   const items = await supabaseClient.from('inventory').select('skin_name,skin_value,skin_image').eq('user_id', userId);
   if (profile.error || items.error) throw profile.error || items.error;
@@ -336,6 +342,7 @@ const loadCloudState = async () => {
   } else {
     await syncCloudState();
   }
+  cloudStateLoaded = true;
 };
 const saveItems = items => {
   localStorage.setItem(itemsKey, JSON.stringify(items));
