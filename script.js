@@ -606,16 +606,43 @@ if (shopGrid) {
 }
 
 const source = document.querySelector('#upgradeSource');
+const upgradePreview = document.querySelector('#upgradePreview');
 let selectedIndex = null;
+const renderUpgradePreview = item => {
+  if (!upgradePreview) return;
+  if (!item) {
+    upgradePreview.hidden = true;
+    upgradePreview.innerHTML = '';
+    return;
+  }
+  const target = getUpgradedItem(item);
+  const sourceImage = item.image || getSkinImage(item.name);
+  const targetImage = target.image || getSkinImage(target.name);
+  upgradePreview.hidden = false;
+  upgradePreview.innerHTML = `
+    <article class="upgrade-preview-card current">
+      <span>Твой скин</span>
+      ${sourceImage ? `<img class="skin-image" src="${sourceImage}" alt="${item.name}">` : ''}
+      <strong>${item.name}</strong><b>${item.value.toLocaleString('ru-RU')} ◈</b>
+    </article>
+    <span class="upgrade-arrow">→</span>
+    <article class="upgrade-preview-card target">
+      <span>Возможный апгрейд</span>
+      ${targetImage ? `<img class="skin-image" src="${targetImage}" alt="${target.name}">` : ''}
+      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b>
+    </article>`;
+};
 const renderUpgradeSource = () => {
   if (!source) return;
   const items = getItems();
   source.innerHTML = items.length ? items.map((item, index) => `<button class="upgrade-skin ${index === 0 ? 'selected' : ''}" data-index="${index}">${item.image || getSkinImage(item.name) ? `<img class="skin-image" src="${item.image || getSkinImage(item.name)}" alt="${item.name}" loading="lazy">` : ''}<b>${item.name}</b><span>${item.value} ◈</span></button>`).join('') : '<span class="empty">Сначала открой кейс и оставь скин в инвентаре.</span>';
   selectedIndex = items.length ? 0 : null;
+  renderUpgradePreview(items[0]);
   source.querySelectorAll('.upgrade-skin').forEach(button => button.addEventListener('click', () => {
     source.querySelectorAll('.upgrade-skin').forEach(item => item.classList.remove('selected'));
     button.classList.add('selected');
     selectedIndex = Number(button.dataset.index);
+    renderUpgradePreview(getItems()[selectedIndex]);
   }));
 };
 renderUpgradeSource();
