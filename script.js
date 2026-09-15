@@ -274,6 +274,7 @@ const getBalance = () => Number(localStorage.getItem(balanceKey) || 2000);
 const getItems = () => JSON.parse(localStorage.getItem(itemsKey) || '[]');
 let cloudSyncTimer = null;
 let cloudStateLoaded = false;
+let inventorySyncPending = false;
 const syncCloudState = async (includeInventory = false) => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
   const sessionResult = await supabaseClient.auth.getSession();
@@ -314,8 +315,13 @@ const syncCloudState = async (includeInventory = false) => {
 };
 const queueCloudSync = (includeInventory = false) => {
   if (!cloudStateLoaded) return;
+  inventorySyncPending = inventorySyncPending || includeInventory;
   clearTimeout(cloudSyncTimer);
-  cloudSyncTimer = setTimeout(() => syncCloudState(includeInventory).catch(error => console.error('Supabase sync failed:', error)), 250);
+  cloudSyncTimer = setTimeout(() => {
+    const syncInventory = inventorySyncPending;
+    inventorySyncPending = false;
+    syncCloudState(syncInventory).catch(error => console.error('Supabase sync failed:', error));
+  }, 250);
 };
 const loadCloudState = async () => {
   if (!supabaseClient || currentPage === 'login.html' || currentPage === 'admin.html') return;
@@ -329,18 +335,26 @@ const loadCloudState = async () => {
   const profile = await supabaseClient.from('profiles').select('balance').eq('id', userId).maybeSingle();
   const items = await supabaseClient.from('inventory').select('skin_name,skin_value,skin_image').eq('user_id', userId);
   if (profile.error || items.error) throw profile.error || items.error;
-  if (profile.data) {
+  const remoteItems = (items.data || []).map(item => ({
+    name: item.skin_name,
+    value: item.skin_value,
+    image: item.skin_image || '',
+    rarity: 'USER ITEM'
+  }));
+  const localItems = getItems();
+  if (profile.data && (remoteItems.length || !localItems.length)) {
     localStorage.setItem(balanceKey, String(profile.data.balance));
     localStorage.setItem('bestUpgraderBalanceVersion', 'cloud');
-    localStorage.setItem(itemsKey, JSON.stringify((items.data || []).map(item => ({
-      name: item.skin_name,
-      value: item.skin_value,
-      image: item.skin_image || '',
-      rarity: 'USER ITEM'
-    }))));
+    localStorage.setItem(itemsKey, JSON.stringify(remoteItems));
     updateState();
     if (typeof renderInventory === 'function') renderInventory();
     if (typeof renderUpgradeSource === 'function') renderUpgradeSource();
+  } else if (profile.data && localItems.length) {
+    localStorage.setItem(balanceKey, String(profile.data.balance));
+    localStorage.setItem('bestUpgraderBalanceVersion', 'cloud');
+    cloudStateLoaded = true;
+    await syncCloudState(true);
+    updateState();
   } else {
     await syncCloudState();
   }
