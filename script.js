@@ -183,7 +183,7 @@ const newShopSkins = [
 const getUpgradedItem = (item, multiplier = 1) => {
   const targetValue = item.value * multiplier;
   const options = newShopSkins
-    .filter(skin => skin[2] >= targetValue)
+    .filter(skin => skin[2] > targetValue)
     .sort((a, b) => a[2] - b[2]);
   const target = options[0] || newShopSkins[newShopSkins.length - 1];
   return { name: target[0], rarity: target[1], value: target[2], image: getSkinImage(target[0]) };
@@ -629,9 +629,9 @@ const renderUpgradePreview = item => {
     </article>
     <span class="upgrade-arrow">→</span>
     <article class="upgrade-preview-card target">
-      <span>Возможный апгрейд</span>
+      <span>Получишь при победе</span>
       ${targetImage ? `<img class="skin-image" src="${targetImage}" alt="${target.name}">` : ''}
-      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b><small>Цель для ${selectedMultiplier}×</small>
+      <strong>${target.name}</strong><b>${target.value.toLocaleString('ru-RU')} ◈</b><small>Цель для ${selectedMultiplier}× · проигрыш возможен</small>
     </article>`;
 };
 const renderUpgradeSource = () => {
