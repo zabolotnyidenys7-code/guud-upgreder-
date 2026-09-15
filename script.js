@@ -650,7 +650,7 @@ renderUpgradeSource();
 const spin = document.querySelector('#spin');
 const multiplierPicker = document.querySelector('#multiplier');
 const wheel = document.querySelector('#wheel');
-const multiplierChance = { 1: 0.1, 3: 0.2, 5: 0.4, 7: 0.6 };
+const multiplierChance = { 1: 0.15, 3: 0.25, 5: 0.45, 7: 0.65 };
 let selectedMultiplier = 1;
 let selectedSpeed = 4000;
 let wheelRotation = 0;
