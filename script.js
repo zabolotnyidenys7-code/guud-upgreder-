@@ -427,7 +427,15 @@ const renderInventory = () => {
 };
 renderInventory();
 
+let pendingCaseReward = false;
+const setCaseButtonsDisabled = disabled => {
+  document.querySelectorAll('.open-case').forEach(button => {
+    button.disabled = disabled;
+    button.setAttribute('aria-disabled', String(disabled));
+  });
+};
 document.querySelectorAll('.open-case').forEach(button => button.addEventListener('click', () => {
+  if (pendingCaseReward) return;
   const cost = Number(button.dataset.cost);
   const caseName = button.dataset.case;
   if (getBalance() < cost) {
@@ -445,9 +453,13 @@ document.querySelectorAll('.open-case').forEach(button => button.addEventListene
   const rewardImage = getSkinImage(reward[0]);
   result.innerHTML = `${rewardImage ? `<img class="skin-image case-reward-image" src="${rewardImage}" alt="${reward[0]}">` : ''}<strong>Выпал скин: ${reward[0]}</strong><br><span>${reward[1]} · ${reward[2]} ◈</span><div class="case-actions"><button class="button keep-reward">Оставить в инвентарь</button><button class="sell-reward">Продать за ${reward[2]} ◈</button></div>`;
   const rewardItem = { name: reward[0], rarity: reward[1], value: reward[2], image: rewardImage };
+  pendingCaseReward = true;
+  setCaseButtonsDisabled(true);
   result.querySelector('.keep-reward').addEventListener('click', () => {
     saveItems([...getItems(), rewardItem]);
     result.textContent = `${reward[0]} оставлен в инвентаре.`;
+    pendingCaseReward = false;
+    setCaseButtonsDisabled(false);
     updateState();
   });
   result.querySelector('.sell-reward').addEventListener('click', () => {
@@ -455,6 +467,8 @@ document.querySelectorAll('.open-case').forEach(button => button.addEventListene
     track('sales');
     track('totalEarned', reward[2]);
     result.textContent = `${reward[0]} продан за ${reward[2]} ◈.`;
+    pendingCaseReward = false;
+    setCaseButtonsDisabled(false);
     updateState();
   });
   result.scrollIntoView({ behavior: 'smooth', block: 'center' });
