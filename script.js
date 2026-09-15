@@ -332,7 +332,7 @@ const loadCloudState = async () => {
     return;
   }
   clearTimeout(cloudSyncTimer);
-  const profile = await supabaseClient.from('profiles').select('balance').eq('id', userId).maybeSingle();
+  const profile = await supabaseClient.from('profiles').select('balance,nickname').eq('id', userId).maybeSingle();
   const items = await supabaseClient.from('inventory').select('skin_name,skin_value,skin_image').eq('user_id', userId);
   if (profile.error || items.error) throw profile.error || items.error;
   const remoteItems = (items.data || []).map(item => ({
@@ -346,6 +346,7 @@ const loadCloudState = async () => {
     localStorage.setItem(balanceKey, String(profile.data.balance));
     localStorage.setItem('bestUpgraderBalanceVersion', 'cloud');
     localStorage.setItem(itemsKey, JSON.stringify(remoteItems));
+    updateProfileView(profile.data, sessionResult.data.session.user.email);
     updateState();
     if (typeof renderInventory === 'function') renderInventory();
     if (typeof renderUpgradeSource === 'function') renderUpgradeSource();
@@ -354,11 +355,20 @@ const loadCloudState = async () => {
     localStorage.setItem('bestUpgraderBalanceVersion', 'cloud');
     cloudStateLoaded = true;
     await syncCloudState(true);
+    updateProfileView(profile.data, sessionResult.data.session.user.email);
     updateState();
   } else {
     await syncCloudState();
   }
   cloudStateLoaded = true;
+};
+const updateProfileView = (profile, email = '') => {
+  const name = document.querySelector('#profileName');
+  const emailNode = document.querySelector('#profileEmail');
+  const input = document.querySelector('#profileNameInput');
+  if (name) name.textContent = profile.nickname || 'Гость';
+  if (emailNode) emailNode.textContent = email || 'Аккаунт Supabase';
+  if (input && document.activeElement !== input) input.value = profile.nickname || '';
 };
 const saveItems = items => {
   localStorage.setItem(itemsKey, JSON.stringify(items));
@@ -374,6 +384,36 @@ const changeBalance = amount => {
 };
 updateState();
 loadCloudState().catch(error => console.error('Supabase load failed:', error));
+const profileNameForm = document.querySelector('#profileNameForm');
+if (profileNameForm) profileNameForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const error = document.querySelector('#profileNameError');
+  const input = document.querySelector('#profileNameInput');
+  const nickname = String(new FormData(profileNameForm).get('nickname') || '').trim();
+  if (nickname.length < 2 || nickname.length > 24) {
+    error.textContent = 'Имя должно содержать от 2 до 24 символов.';
+    return;
+  }
+  if (!supabaseClient) {
+    error.textContent = 'Сервер авторизации не подключен.';
+    return;
+  }
+  const sessionResult = await supabaseClient.auth.getSession();
+  const userId = sessionResult.data.session?.user?.id;
+  if (!userId) {
+    error.textContent = 'Сначала войди в аккаунт.';
+    return;
+  }
+  input.disabled = true;
+  const result = await supabaseClient.from('profiles').update({ nickname }).eq('id', userId);
+  input.disabled = false;
+  if (result.error) {
+    error.textContent = `Не удалось сохранить имя: ${result.error.message}`;
+    return;
+  }
+  updateProfileView({ nickname }, sessionResult.data.session.user.email);
+  error.textContent = 'Имя профиля сохранено.';
+});
 const showAdminLinkForAdmin = async () => {
   const adminLink = document.querySelector('#footerAdminLink');
   if (!adminLink || !supabaseClient) return;
