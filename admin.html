@@ -4,8 +4,16 @@
 <body>
 <main class="page admin-page">
   <div class="admin-head"><div><p class="label">CONTROL CENTER</p><h1>Админ-панель</h1></div><button class="button button-small" id="adminLogout">Выйти</button></div>
-  <p class="intro">Статистика текущего браузера. Для реальной многопользовательской аналитики нужен сервер и база данных.</p>
+  <p class="intro">Общая статистика пользователей и игровых операций из Supabase.</p>
   <section class="stats-grid" id="adminStats"></section>
+  <section class="admin-card admin-players">
+    <div class="admin-section-head"><div><h2>Игроки</h2><p>Просмотр аккаунтов, инвентаря и баланса.</p></div><button class="button button-small" id="refreshPlayers" type="button">Обновить</button></div>
+    <div id="playersList" class="players-list"><p class="payment-status">Загрузка игроков...</p></div>
+  </section>
+  <section class="admin-card player-details-card" id="playerDetails" hidden>
+    <div class="admin-section-head"><div><h2 id="playerDetailsTitle">Профиль игрока</h2><p id="playerDetailsMeta"></p></div><button class="button button-small" id="closePlayerDetails" type="button">Закрыть</button></div>
+    <div id="playerDetailsContent"></div>
+  </section>
   <section class="admin-card"><h2>Состояние проекта</h2><p id="adminState"></p><a class="button" href="index.html">Перейти на сайт</a></section>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

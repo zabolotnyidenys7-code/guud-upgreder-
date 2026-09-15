@@ -704,7 +704,63 @@ if (adminStats) {
     ];
     adminStats.innerHTML = cards.map(card => `<article class="stat-card"><span>${card[0]}</span><strong>${Number(card[1]).toLocaleString('ru-RU')}</strong></article>`).join('');
     document.querySelector('#adminState').textContent = 'Администратор авторизован. Данные загружены из Supabase.';
+    await loadAdminPlayers();
   };
+  const playersList = document.querySelector('#playersList');
+  const playerDetails = document.querySelector('#playerDetails');
+  const formatNumber = value => Number(value || 0).toLocaleString('ru-RU');
+  const loadAdminPlayers = async () => {
+    const result = await supabaseClient.rpc('admin_list_players');
+    if (result.error) {
+      playersList.innerHTML = `<p class="form-error">Не удалось загрузить игроков: ${result.error.message}</p>`;
+      return;
+    }
+    if (!result.data?.length) {
+      playersList.innerHTML = '<p class="payment-status">Игроков пока нет.</p>';
+      return;
+    }
+    playersList.innerHTML = result.data.map(player => `
+      <button class="player-row" type="button" data-user-id="${player.user_id}">
+        <span><strong>${player.nickname || player.email || 'Без имени'}</strong><small>${player.email || player.user_id}</small></span>
+        <span><b>${formatNumber(player.balance)} ◈</b><small>${formatNumber(player.inventory_count)} предметов</small></span>
+      </button>`).join('');
+    playersList.querySelectorAll('.player-row').forEach(button => {
+      button.addEventListener('click', () => showAdminPlayer(button.dataset.userId));
+    });
+  };
+  const showAdminPlayer = async userId => {
+    const result = await supabaseClient.rpc('admin_player_details', { target_user_id: userId });
+    if (result.error || !result.data?.profile) {
+      document.querySelector('#adminState').textContent = `Не удалось загрузить профиль: ${result.error?.message || 'игрок не найден'}`;
+      return;
+    }
+    const { profile, inventory, stats } = result.data;
+    document.querySelector('#playerDetailsTitle').textContent = profile.nickname || profile.email || 'Профиль игрока';
+    document.querySelector('#playerDetailsMeta').textContent = `${profile.email || profile.id} · зарегистрирован ${new Date(profile.created_at).toLocaleDateString('ru-RU')}`;
+    document.querySelector('#playerDetailsContent').innerHTML = `
+      <div class="player-summary"><div><span>Баланс</span><strong>${formatNumber(profile.balance)} ◈</strong></div><div><span>Предметов</span><strong>${formatNumber(inventory?.length)}</strong></div><div><span>Кейсов</span><strong>${formatNumber(stats?.cases_opened)}</strong></div><div><span>Побед</span><strong>${formatNumber(stats?.wins)}</strong></div></div>
+      <form class="grant-form" id="grantBalanceForm"><label>Выдать монеты<input name="amount" type="number" min="1" max="100000000" step="1" placeholder="Например, 1000" required></label><button class="button" type="submit">Выдать баланс</button><p class="form-error" id="grantError"></p></form>
+      <h3>Инвентарь</h3>
+      <div class="admin-inventory">${inventory?.length ? inventory.map(item => `<article><strong>${item.skin_name}</strong><span>${formatNumber(item.skin_value)} ◈</span></article>`).join('') : '<p class="payment-status">Инвентарь пуст.</p>'}</div>`;
+    playerDetails.hidden = false;
+    document.querySelector('#grantBalanceForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = new FormData(event.currentTarget);
+      const amount = Number(form.get('amount'));
+      const error = document.querySelector('#grantError');
+      const grant = await supabaseClient.rpc('admin_grant_balance', { target_user_id: userId, amount });
+      if (grant.error) {
+        error.textContent = grant.error.message;
+        return;
+      }
+      error.textContent = `Готово. Новый баланс: ${formatNumber(grant.data)} ◈`;
+      await showAdminPlayer(userId);
+      await loadAdminPlayers();
+    });
+    playerDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  document.querySelector('#refreshPlayers').addEventListener('click', loadAdminPlayers);
+  document.querySelector('#closePlayerDetails').addEventListener('click', () => { playerDetails.hidden = true; });
   loadAdminPanel();
 }
 const adminLogout = document.querySelector('#adminLogout');
