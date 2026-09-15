@@ -351,6 +351,20 @@ const changeBalance = amount => {
 };
 updateState();
 loadCloudState().catch(error => console.error('Supabase load failed:', error));
+const showAdminLinkForAdmin = async () => {
+  const adminLink = document.querySelector('#footerAdminLink');
+  if (!adminLink || !supabaseClient) return;
+  const sessionResult = await supabaseClient.auth.getSession();
+  const userId = sessionResult.data.session?.user?.id;
+  if (!userId) return;
+  const profile = await supabaseClient.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
+  if (profile.error) {
+    console.error('Admin status check failed:', profile.error);
+    return;
+  }
+  adminLink.hidden = !profile.data?.is_admin;
+};
+showAdminLinkForAdmin().catch(error => console.error('Admin link check failed:', error));
 
 const header = document.querySelector('.header');
 if (header && !header.querySelector('.header-actions')) {
